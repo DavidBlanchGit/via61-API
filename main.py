@@ -1,14 +1,27 @@
 from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from tablas.models import Model_User
 from tablas.schema import Schema_User, Schema_User_Update, Schema_Foto_Update, Exit_Code
 from starlette.responses import RedirectResponse
 from conexion import SessionLocal
 from sqlalchemy.orm import Session
 from typing import List
+import hashlib
 
 # Crear la aplicacion de FastAPI
 app = FastAPI()
 
+origins = [
+    "http://localhost:3000"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)   
 
 def get_db():
     try:
@@ -44,7 +57,8 @@ def obtener_protonmail(protonmail: str, db: Session = Depends(get_db)):
 @app.post('/setUsers', response_model=Schema_User)
 def insertar_usuarios(entrada:Schema_User, db: Session = Depends(get_db)):
     password = b'{entrada.txto_psswrd}'
-    user = Model_User(txto_protonmail = entrada.txto_protonmail, txto_psswrd = password,  txto_nick = entrada.txto_nick)
+    hashed_password = hashlib.sha256(password).hexdigest()
+    user = Model_User(txto_protonmail = entrada.txto_protonmail, txto_psswrd = hashed_password,  txto_nick = entrada.txto_nick, cdgo_rango = 0)
     db.add(user)
     db.commit()
     db.refresh(user)
