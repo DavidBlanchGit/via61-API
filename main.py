@@ -7,6 +7,7 @@ from conexion import SessionLocal
 from sqlalchemy.orm import Session
 from typing import List
 import hashlib
+import uvicorn
 
 # Crear la aplicacion de FastAPI
 app = FastAPI()
@@ -99,3 +100,6 @@ def borrar_usuarios(user_id: int, db: Session = Depends(get_db)):
     db.commit()
     mensaje = Exit_Code(mensaje=0)
     return mensaje
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8080)
