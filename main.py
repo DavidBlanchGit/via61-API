@@ -7,7 +7,7 @@ from conexion import SessionLocal
 from sqlalchemy.orm import Session
 from typing import List
 import hashlib
-import uvicorn
+import codecs
 
 # Crear la aplicacion de FastAPI
 app = FastAPI()
@@ -27,7 +27,7 @@ app.add_middleware(
 def get_db():
     try:
         db = SessionLocal()
-        yield db
+        return db
     finally:
         db.close()
 
@@ -54,16 +54,30 @@ def obtener_protonmail(protonmail: str, db: Session = Depends(get_db)):
     user = db.query(Model_User).filter_by(txto_protonmail=protonmail).first()
     return user
 
+def get_sha256_hash(password):
+    try:
+        digest = hashlib.sha256()
+        digest.update(password.encode('utf-8'))
+        hashed_bytes = digest.digest()
+        return bytes_to_hex(hashed_bytes)
+    except Exception as e:
+        print(e)
+        return None
+    
+def bytes_to_hex(bytes):
+    return ''.join(format(b, '02x') for b in bytes)
+
 # Crear usuarios
 @app.post('/setUsers', response_model=Schema_User)
-def insertar_usuarios(entrada:Schema_User, db: Session = Depends(get_db)):
-    password = b'{entrada.txto_psswrd}'
-    hashed_password = hashlib.sha256(password).hexdigest()
-    user = Model_User(txto_protonmail = entrada.txto_protonmail, txto_psswrd = hashed_password,  txto_nick = entrada.txto_nick, cdgo_rango = 0)
+def insertar_usuarios(entrada: Schema_User, db: Session = Depends(get_db)):
+    password = entrada.txto_psswrd
+    # hashed_password = get_sha256_hash(password)
+    user = Model_User(txto_protonmail=entrada.txto_protonmail, txto_psswrd=password, txto_nick=entrada.txto_nick, cdgo_rango=0)
     db.add(user)
     db.commit()
     db.refresh(user)
     return user
+
 
 # Cambiar el nombre de usuario
 @app.put('/changeUser/name/{user_id}', response_model=Schema_User)
@@ -100,6 +114,3 @@ def borrar_usuarios(user_id: int, db: Session = Depends(get_db)):
     db.commit()
     mensaje = Exit_Code(mensaje=0)
     return mensaje
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8080)
