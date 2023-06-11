@@ -71,8 +71,8 @@ def bytes_to_hex(bytes):
 @app.post('/setUsers', response_model=Schema_User)
 def insertar_usuarios(entrada: Schema_User, db: Session = Depends(get_db)):
     password = entrada.txto_psswrd
-    # hashed_password = get_sha256_hash(password)
-    user = Model_User(txto_protonmail=entrada.txto_protonmail, txto_psswrd=password, txto_nick=entrada.txto_nick, cdgo_rango=0)
+    hashed_password = get_sha256_hash(password)
+    user = Model_User(txto_protonmail=entrada.txto_protonmail, txto_psswrd=hashed_password, txto_nick=entrada.txto_nick, cdgo_rango=0)
     db.add(user)
     db.commit()
     db.refresh(user)
